@@ -36,6 +36,7 @@ else
 fi
 
 echo "Done!!"
+cd ~
 exec zsh
 
 
