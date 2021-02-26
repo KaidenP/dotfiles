@@ -21,7 +21,7 @@ $SUDO $APT dist-upgrade
 $SUDO $APT install $PKGS
 
 #ZSH
-$SUDO chsh -s $(which zsh) $(whoami)
+$SUDO chsh -s "$(which zsh)" "$(whoami)"
 zsh <(curl -fsSL https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh)
 ##plugins
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/psprint/zsh-navigation-tools/master/doc/install.sh)"
