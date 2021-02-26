@@ -28,11 +28,11 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/psprint/zsh-navigation-too
 git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
 ~/.fzf/install
 curl https://raw.githubusercontent.com/seebi/dircolors-solarized/master/dircolors.ansi-dark --output ~/.dircolors
-if [ -d "~/.powerlevel10k" ]; then
-	cd "~/.powerlevel10k"
+if [ -d "$HOME/.powerlevel10k" ]; then
+	cd "$HOME/.powerlevel10k"
 	git pull origin master
 else
-	git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ~/.powerlevel10k
+	git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$HOME/.powerlevel10k"
 fi
 
 echo "Done!!"
