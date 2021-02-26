@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-REPO=""
+# bash <(curl https://raw.githubusercontent.com/KaidenP/dotfiles/main/linux/shared/.bin/autoinstall)
+
+REPO="https://github.com/KaidenP/dotfiles.git"
 REPO_DIR="$HOME/.dotfiles"
 if [ -d "$REPO_DIR" ]; then
   if command -v git &> /dev/null
