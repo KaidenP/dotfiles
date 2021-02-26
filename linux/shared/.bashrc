@@ -120,6 +120,9 @@ if ! shopt -oq posix; then
   fi
 fi
 
+
+PATH="$HOME/.bin:$PATH"
+
 if test -t 1; then
   exec zsh
 fi

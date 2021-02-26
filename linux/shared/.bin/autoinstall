@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+
+REPO=""
+REPO_DIR="$HOME/.dotfiles"
+if [ -d "$REPO_DIR" ]; then
+  if command -v git &> /dev/null
+    cd "$REPO_DIR"
+    git pull origin master
+  fi
+else
+  if ! command -v git &> /dev/null
+    echo "Git is required for this script"
+    exit 255
+  fi
+  git clone "$REPO" "$REPO_DIR"
+fi
+cd "$REPO_DIR"
+
+SUDO=""
+if [[ $EUID -ne 0 ]]; then
+	echo "Using sudo for admin commands."
+	echo "==================="
+	SUDO="sudo"
+fi
+
+DISTRIB_ID="unknown"
+DISTRIB_RELEASE=""
+DISTRIB_CODENAME=""
+DISTRIB_DESCRIPTION=""
+
+LSB_RELEASE="/etc/lsb-release"
+if test -f "$LSB_RELEASE"; then
+    source "$LSB_RELEASE"
+else
+  echo "No $LSB_RELEASE found."
+fi
+
+if [[ "$DISTRIB_ID" == "unknown" ]]; then
+  echo "unknown distribution. Exiting..."
+  exit 255
+else
+  for dir in "./linux/shared" "./linux/$DISTRIB_ID/all" "./linux/$DISTRIB_ID/$DISTRIB_RELEASE"; do
+    echo "Copying $dir to $HOME..."
+    if [ -d "$dir" ]; then
+      tar -cC "$dir" . | tar -xC "$HOME/"
+    else
+      echo "$dir does not exist. Skipping..."
+    fi
+  done
+
+
+
+  $SUDO chown $USER:$USER ~ -R
+  chmod 700 -R ~/.ssh ~/.bin &> /dev/null
+  chmod 600 -f ~/.ssh/* ~/.ssh/*.*  &> /dev/null
+fi
