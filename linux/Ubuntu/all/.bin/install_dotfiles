@@ -32,11 +32,11 @@ git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ~/powerlevel10k
 
 
 # cp files
-if [ "$DOTFILES" != "$HOME" ]; then
-	log "Coppying $DOTFILES to $HOME..."
-	tar -vcC "$DOTFILES" . | tar -xC ~/
-fi
-
-$SUDO chown $USER:$USER ~ -R
-chmod 700 -R ~/.ssh ~/.bin
-chmod 600 -f ~/.ssh/* ~/.ssh/*.*
+# if [ "$DOTFILES" != "$HOME" ]; then
+# 	log "Coppying $DOTFILES to $HOME..."
+# 	tar -vcC "$DOTFILES" . | tar -xC ~/
+# fi
+#
+# $SUDO chown $USER:$USER ~ -R
+# chmod 700 -R ~/.ssh ~/.bin
+# chmod 600 -f ~/.ssh/* ~/.ssh/*.*
