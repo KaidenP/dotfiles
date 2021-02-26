@@ -55,4 +55,5 @@ else
   $SUDO chown $USER:$USER ~ -R
   chmod 700 -R ~/.ssh ~/.bin &> /dev/null
   chmod 600 -f ~/.ssh/* ~/.ssh/*.*  &> /dev/null
+  bash "$HOME/.bin/install_dotfiles"
 fi
