@@ -10,7 +10,7 @@ if [ -d "$REPO_DIR" ]; then
     git pull origin master
   fi
 else
-  if ! command -v git &> /dev/null
+  if ! command -v git &> /dev/null; then
     echo "Git is required for this script"
     exit 255
   fi
