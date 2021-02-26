@@ -5,7 +5,7 @@
 REPO="https://github.com/KaidenP/dotfiles.git"
 REPO_DIR="$HOME/.dotfiles"
 if [ -d "$REPO_DIR" ]; then
-  if command -v git &> /dev/null
+  if command -v git &> /dev/null; then
     cd "$REPO_DIR"
     git pull origin master
   fi
