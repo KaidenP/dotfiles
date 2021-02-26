@@ -35,6 +35,9 @@ else
 	git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ~/.powerlevel10k
 fi
 
+echo "Done!!"
+exec zsh
+
 
 # cp files
 # if [ "$DOTFILES" != "$HOME" ]; then
