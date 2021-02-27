@@ -37,7 +37,7 @@ fi
 
 echo "Done!!"
 cd ~
-exec zsh
+# exec zsh
 
 
 # cp files

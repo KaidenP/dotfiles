@@ -2,6 +2,17 @@
 
 # bash <(curl https://raw.githubusercontent.com/KaidenP/dotfiles/master/linux/shared/.bin/autoinstall)
 
+copy_files() {
+  for dir in "./linux/shared" "./linux/$DISTRIB_ID/all" "./linux/$DISTRIB_ID/$DISTRIB_RELEASE"; do
+    echo "Copying $dir to $HOME..."
+    if [ -d "$dir" ]; then
+      tar -cC "$dir" . | tar -xC "$HOME/"
+    else
+      echo "$dir does not exist. Skipping..."
+    fi
+  done
+}
+
 REPO="https://github.com/KaidenP/dotfiles.git"
 REPO_DIR="$HOME/.dotfiles"
 if [ -d "$REPO_DIR" ]; then
@@ -41,19 +52,10 @@ if [[ "$DISTRIB_ID" == "unknown" ]]; then
   echo "unknown distribution. Exiting..."
   exit 255
 else
-  for dir in "./linux/shared" "./linux/$DISTRIB_ID/all" "./linux/$DISTRIB_ID/$DISTRIB_RELEASE"; do
-    echo "Copying $dir to $HOME..."
-    if [ -d "$dir" ]; then
-      tar -cC "$dir" . | tar -xC "$HOME/"
-    else
-      echo "$dir does not exist. Skipping..."
-    fi
-  done
-
-
-
+  copy_files
+  bash "$HOME/.bin/install_dotfiles"
   $SUDO chown $USER:$USER ~ -R
+  copy_files
   chmod 700 -R ~/.ssh ~/.bin &> /dev/null
   chmod 600 -f ~/.ssh/* ~/.ssh/*.*  &> /dev/null
-  bash "$HOME/.bin/install_dotfiles"
 fi
