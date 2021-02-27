@@ -59,3 +59,5 @@ else
   chmod 700 -R ~/.ssh ~/.bin &> /dev/null
   chmod 600 -f ~/.ssh/* ~/.ssh/*.*  &> /dev/null
 fi
+
+exec zsh
