@@ -60,4 +60,5 @@ else
   chmod 600 -f ~/.ssh/* ~/.ssh/*.*  &> /dev/null
 fi
 
+cd "$HOME"
 exec zsh
