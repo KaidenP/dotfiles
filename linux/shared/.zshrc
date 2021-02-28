@@ -74,12 +74,9 @@ ZSH_THEME="agnoster"
 plugins=(git zsh-interactive-cd yarn wakeonlan ufw ubuntu tmux sudo \
   node npm man docker docker-compose common-aliases command-not-found)
 
-if grep -q Microsoft /proc/version; then
-  echo "Ubuntu on Windows"
-else
+if [ -z ${SSH_AUTH_SOCK+x} ]; then
   plugins+=(ssh-agent)
 fi
-
 source $ZSH/oh-my-zsh.sh
 
 # User configuration
