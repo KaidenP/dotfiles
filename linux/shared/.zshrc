@@ -143,7 +143,7 @@ case $TERM in
     xterm*)
         DISABLE_AUTO_TITLE="true"
         precmd () {
-          print -Pn "\e]0;$USER@$HOST $(echo $PWD | sed "s#$HOME#~#g" | grep -E "(|^/)([a-zA-Z~]+\/|)[a-zA-Z~]+$")\a"
+          print -Pn "\e]0;$USER@$HOST $(echo $PWD | sed "s#^$HOME#~#g" | grep -E "(|^/)([a-zA-Z~]+\/|)[a-zA-Z~]+$")\a"
         }
         ;;
 esac
