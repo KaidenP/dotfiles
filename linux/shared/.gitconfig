@@ -1,0 +1,7 @@
+[user]
+        name = KaidenP
+        email = me@kaidenprince.com
+[core]
+        editor = nano
+[init]
+        defaultBranch = master
