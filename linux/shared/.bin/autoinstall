@@ -3,7 +3,7 @@
 # bash <(curl https://raw.githubusercontent.com/KaidenP/dotfiles/master/linux/shared/.bin/autoinstall)
 
 copy_files() {
-  for dir in "./linux/shared" "./linux/$DISTRIB_ID/all" "./linux/$DISTRIB_ID/$DISTRIB_RELEASE"; do
+  for dir in "./shared" "./linux/shared" "./linux/$DISTRIB_ID/all" "./linux/$DISTRIB_ID/$DISTRIB_RELEASE"; do
     echo "Copying $dir to $HOME..."
     if [ -d "$dir" ]; then
       tar -cC "$dir" . | tar -xC "$HOME/"
@@ -54,11 +54,18 @@ if [[ "$DISTRIB_ID" == "unknown" ]]; then
 else
   copy_files
   bash "$HOME/.bin/install_dotfiles"
-  $SUDO chown $USER:$USER ~ -R
-  copy_files
-  chmod 700 -R ~/.ssh ~/.bin &> /dev/null
-  chmod 600 -f ~/.ssh/* ~/.ssh/*.*  &> /dev/null
 fi
+
+# NVM
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash
+$SUDO chown $USER:$USER ~ -R
+copy_files
+chmod 700 -R ~/.ssh ~/.bin &> /dev/null
+chmod 600 -f ~/.ssh/* ~/.ssh/*.*  &> /dev/null
+source $HOME/.bashrc
+nvm install node
+npm install -g yarn
+
 
 cd "$HOME"
 exec zsh
