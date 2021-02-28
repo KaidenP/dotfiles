@@ -148,3 +148,4 @@ case $TERM in
         }
         ;;
 esac
+setopt share_history
