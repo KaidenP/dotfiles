@@ -34,6 +34,8 @@ if [[ $EUID -ne 0 ]]; then
 	echo "Using sudo for admin commands."
 	echo "==================="
 	SUDO="sudo"
+
+  $SUDO bash $0
 fi
 
 DISTRIB_ID="unknown"
