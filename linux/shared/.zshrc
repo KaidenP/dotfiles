@@ -143,8 +143,8 @@ case $TERM in
     xterm*)
         DISABLE_AUTO_TITLE="true"
         precmd () {
-          path=$(echo "$PWD" | sed "s#$HOME#~#g")
-          print -Pn "\e]0;$USER@$HOST ${$(dirname $path)##*/}/${path##*/}\a"
+          p=$(echo "$PWD" | sed "s#$HOME#~#g")
+          print -Pn "\e]0;$USER@$HOST ${$(dirname $p)##*/}/${p##*/}\a"
         }
         ;;
 esac
