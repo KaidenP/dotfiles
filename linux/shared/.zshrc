@@ -73,6 +73,11 @@ ZSH_THEME="agnoster"
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(git zsh-interactive-cd yarn wakeonlan ufw ubuntu tmux sudo \
   node npm man docker docker-compose common-aliases command-not-found)
+  
+if test -f "/mnt/c/ssh-agent.sock"; then
+    SSH_AUTH_SOCK=/mnt/c/ssh-agent.sock
+    export SSH_AUTH_SOCK=/mnt/c/ssh-agent.sock
+fi
 
 if [ -z ${SSH_AUTH_SOCK+x} ]; then
   plugins+=(ssh-agent)
