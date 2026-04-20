@@ -1,6 +1,0 @@
-# [hooks.read-source-state.pre]
-#     command = ".local/share/chezmoi/.init.sh"
-encryption = "age"
-[age]
-identity = "~/.age_identity"
-recipient = "age1452gqqgx0hcyr0padd50mj0gyupc9cn33k00mgmdttsrhu702srq3nynss"
