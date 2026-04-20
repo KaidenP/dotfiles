@@ -93,6 +93,11 @@ source $ZSH/oh-my-zsh.sh
 # else
 #   export EDITOR='nvim'
 # fi
+if [[ "$TERM_PROGRAM" == "vscode" ]]; then
+	export EDITOR='code -wr'
+else
+	export EDITOR='nano'
+fi
 
 # Compilation flags
 # export ARCHFLAGS="-arch $(uname -m)"
@@ -125,4 +130,9 @@ fi
 # snap puts bins in /snap/bin
 if [ -d "/snap/bin" ]; then
 	PATH="$PATH:/snap/bin"
+fi
+
+# Python venv
+if [ -f "$HOME/.venv/bin/activate" ]; then
+	source "$HOME/.venv/bin/activate"
 fi
