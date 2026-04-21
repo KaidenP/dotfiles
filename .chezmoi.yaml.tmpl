@@ -6,8 +6,6 @@ age:
 hooks:
   apply:
     pre:
-    {{ if eq .chezmoi.os "linux" -}}
-      script: .hooks/nix/hook_apply_pre_00-decrypt-private-key.sh
-    {{- else if eq .chezmoi.os "windows" -}}
-      script: .hooks/win/hook_apply_pre_00-decrypt-private-key.ps1
-    {{- end }}
+      {{ if eq .chezmoi.os "linux"}}script: .hooks/nix/hook_apply_pre_00-decrypt-private-key.sh
+      {{ else if eq .chezmoi.os "windows" }}script: .hooks/win/hook_apply_pre_00-decrypt-private-key.ps1
+      {{- end }}
