@@ -57,7 +57,8 @@
             "colorScheme": "Dimidium",
             "font": {
                 "face": "UbuntuMono Nerd Font Mono"
-            }
+            },
+            "opacity": 95
         },
         "list": [
             {
@@ -66,10 +67,10 @@
                 "name": "PowerShell"
             },
             {
-                "guid": "{840dad8e-4565-5539-820f-0e6e303c139c}",
                 "hidden": false,
-                "name": "Ubuntu",
-                "source": "Microsoft.WSL"
+                "name": "WSL",
+                "icon": "ms-appx:///ProfileIcons/{9acb9455-ca41-5af7-950f-6bca1bc9722f}.png",
+                "commandline": "wsl.exe"
             }
             {{- $hosts := (include "dot_local/share/encrypted_ssh_hosts.yaml.age" | decrypt | fromYaml) }}
             {{- range $hostid, $data := $hosts }},
@@ -77,6 +78,7 @@
                 "closeOnExit": "always",
                 "commandline": "pwsh.exe -Command \"& { do { ssh {{ $hostid }}; Read-Host 'Press Enter to reconnect or Ctrl+C to exit' } while ($true) }\"",
                 "hidden": false,
+                "icon": "\ue703",
                 "name": "SSH: {{ $data.name }}"
             }
             {{ end }}
