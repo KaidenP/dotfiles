@@ -1,0 +1,11 @@
+Host *
+  User kkprince
+
+{{ $hosts := (include "dot_local/share/encrypted_ssh_hosts.yaml.age" | decrypt | fromYaml) -}}
+{{ range $hostid, $data := $hosts -}}
+Host {{ $hostid }}
+  HostName {{ $data.address }}
+  {{- if hasKey $data "sshOptions" }}{{ range $k, $v := $data.sshOptions }}
+  {{ $k }} {{ $v }}
+  {{ end }}{{ end }}
+{{ end }}
