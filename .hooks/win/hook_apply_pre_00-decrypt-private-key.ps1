@@ -1,5 +1,5 @@
 $agePath = Join-Path $env:USERPROFILE ".age_identity"
-$sourceDir = "{{ .chezmoi.sourceDir }}"
+$sourceDir = "."
 
 if (-not (Test-Path $agePath)) {
     & chezmoi age decrypt --output $agePath --passphrase "$sourceDir/.age_identity.age"
