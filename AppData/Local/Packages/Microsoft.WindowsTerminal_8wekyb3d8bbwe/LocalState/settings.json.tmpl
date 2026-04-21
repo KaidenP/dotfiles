@@ -78,7 +78,7 @@
                 "commandline": "pwsh.exe -Command \"& { do { ssh {{ $hostid }}; Read-Host 'Press Enter to reconnect or Ctrl+C to exit' } while ($true) }\"",
                 "hidden": false,
                 "name": "SSH: {{ $data.name }}"
-            },
+            }
             {{ end }}
         ]
     },
