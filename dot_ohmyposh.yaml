@@ -1,0 +1,138 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json
+
+upgrade:
+    source: cdn
+    interval: 168h
+    auto: false
+    notice: false
+console_title_template: '{{ .Shell }} in {{ .Folder }}'
+var: 
+  hide_usernames:
+    # - "kkprince"
+    # - "Kaiden"
+maps:
+  shell_name:
+    zsh: ''
+    bash: ''
+blocks:
+    - type: prompt
+      alignment: left
+      segments:
+        - template: " {{ if .WSL }}\uE62A {{ end }}{{.Icon}} "
+          foreground: '#000000'
+          background: '#d3d7cf'
+          type: os
+          style: diamond
+        - template: "\
+            {{ if or (not (has .UserName .Var.hide_usernames)) (.SSHSession) (.Root) }} \
+            \uef7c {{ .UserName }} {{ end }}"
+          foreground: '#000000'
+          powerline_symbol: 
+          background: '#34a832'
+          type: session
+          style: powerline
+          background_templates:
+            - '{{ if .Root }}#f71936{{ end }}'
+        - template: "\
+            {{ if .SSHSession }} \
+            󰒋 {{ .HostName }} {{ end }}"
+          foreground: '#000000'
+          powerline_symbol: 
+          background: '#dee81a'
+          type: session
+          style: powerline
+        - options:
+            home_icon: "~"
+            style: full
+          template: '  {{ .Path }} '
+          foreground: '#e4e4e4'
+          powerline_symbol: 
+          background: '#3465a4'
+          type: path
+          style: powerline
+        - options:
+            branch_icon: '  '
+            fetch_status: true
+            fetch_upstream_icon: true
+          template: "{{ .UpstreamIcon }}{{ .HEAD }}\
+            {{if .BranchStatus }} {{ .BranchStatus }}{{ end }}\
+            {{ if .Working.Changed }}  {{ .Working.String }}{{ end }}\
+            {{ if and (.Working.Changed) (.Staging.Changed) }} |{{ end }}\
+            {{ if .Staging.Changed }}  {{ .Staging.String }}{{ end }}\
+            {{ if gt .StashCount 0 }}  {{ .StashCount }}{{ end }} "
+          foreground: '#000000'
+          powerline_symbol: 
+          background: '#4e9a06'
+          type: git
+          style: powerline
+          background_templates:
+            - '{{ if or (.Working.Changed) (.Staging.Changed) }}#c4a000{{ end }}'
+            - '{{ if and (gt .Ahead 0) (gt .Behind 0) }}#f26d50{{ end }}'
+            - '{{ if gt .Ahead 0 }}#89d1dc{{ end }}'
+            - '{{ if gt .Behind 0 }}#4e9a06{{ end }}'
+    - type: prompt
+      alignment: right
+      segments:
+        - template: '  '
+          foreground: '#111111'
+          powerline_symbol: 
+          background: '#ffff66'
+          type: root
+          style: powerline
+          invert_powerline: true
+        - template: ' {{ .FormattedMs }}  '
+          foreground: '#000000'
+          powerline_symbol: 
+          background: '#c4a000'
+          type: executiontime
+          style: powerline
+          invert_powerline: true
+        - options:
+            always_enabled: true
+          template: ' {{ if gt .Code 0 }}{{ reason .Code }}{{ else }}{{ end }} '
+          foreground: '#d3d7cf'
+          powerline_symbol: 
+          background: '#000000'
+          type: status
+          style: powerline
+          background_templates:
+            - '{{ if gt .Code 0 }}#cc2222{{ end }}'
+          invert_powerline: true
+        - template: ' {{ .CurrentDate | date .Format }}  '
+          foreground: '#000000'
+          background: '#d3d7cf'
+          type: time
+          style: diamond
+          invert_powerline: true
+    - type: prompt
+      alignment: left
+      segments:
+        - template: '{{ .Shell }}{{ if not (eq .Shell "") }} {{ end }}'
+          foreground: '#d3d7cf'
+          type: text
+          style: plain
+        - template: " \u276f"
+          foreground: '#5fd700'
+          foreground_templates:
+            - "{{ if .Error }}#ff3131{{ end }}"
+          type: status
+          style: plain
+          options:
+            always_enabled: true
+      newline: true
+    - type: rprompt
+      segments:
+        - template: ─╯
+          foreground: '#d3d7cf'
+          type: text
+          style: plain
+        # - type: command
+        #   style: plain
+        #   foreground: green
+        #   command: |
+        #     if [ -z "$PUBLIC_IP" ]; then
+        #       export PUBLIC_IP=$(curl -s ifconfig.me)
+        #     fi
+        #     echo $PUBLIC_IP
+version: 4
+final_space: true
