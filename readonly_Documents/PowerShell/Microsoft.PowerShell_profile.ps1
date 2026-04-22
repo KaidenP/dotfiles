@@ -1,0 +1,1 @@
+oh-my-posh init pwsh --config ~/.ohmyposh.yaml | Invoke-Expression
