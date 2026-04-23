@@ -1,5 +1,6 @@
 {{ if not (eq .chezmoi.os "windows") }}
 AppData/
+Documents/
 {{ end }}
 {{ if not (eq .chezmoi.os "linux") }}
 .bashrc

@@ -5,11 +5,17 @@ upgrade:
     interval: 168h
     auto: false
     notice: false
-console_title_template: '{{ .Shell }} in {{ .Folder }}'
+console_title_template: "\
+  {{ if .Root }}♦ {{ end }}\
+  {{ if or (not (has .UserName .Var.hide_usernames)) (.Segments.Session.SSHSession) (.Root) }}{{ .UserName }}{{ end }}\
+  {{ if .Segments.Session.SSHSession }}@{{ .HostName }}{{ end }}\
+  {{ if or (not (has .UserName .Var.hide_usernames)) (.Segments.Session.SSHSession) (.Root) }}: {{ end }}\
+  {{ .PWD }}\
+  "
 var: 
   hide_usernames:
-    # - "kkprince"
-    # - "Kaiden"
+    - "kkprince"
+    - "Kaiden"
 maps:
   shell_name:
     zsh: ""
@@ -122,10 +128,26 @@ blocks:
             always_enabled: true
       newline: true
     - type: rprompt
+      alignment: right
       segments:
-        - template: ─╯
-          foreground: '#d3d7cf'
-          type: text
-          style: plain
+        - type: http
+          foreground: "#ffffff"
+          background: "#000000"
+          style: diamond
+          leading_diamond: 
+          invert_powerline: true
+          template: " {{ .Body.ip }} "
+          options:
+            url: https://api.ipify.org?format=json
+            method: GET
+          cache:
+            strategy: device
+            duration: 1h
 version: 4
 final_space: true
+transient_prompt:
+  background: transparent
+  foreground: "#5fd700"
+  template: "\u276f "
+  foreground_templates:
+    - "{{ if .Segments.Status.Error }}#ff3131{{ end }}"
