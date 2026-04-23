@@ -108,13 +108,14 @@ blocks:
         - type: spotify
           style: powerline
           powerline_symbol: 
-          foreground: "#ffffff"
-          background: "#1BD760"
+          foreground: "#000000"
+          background: "#1ed760"
           options:
             playing_icon: " "
             paused_icon: " "
             stopped_icon: " "
           invert_powerline: true
+          placeholder: ""
           cache:
             strategy: device
             duration: 10s
@@ -150,6 +151,7 @@ blocks:
           leading_diamond: 
           invert_powerline: true
           template: " {{ .Body.ip }} "
+          placeholder: ""
           options:
             url: https://api.ipify.org?format=json
             method: GET
