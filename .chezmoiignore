@@ -1,0 +1,8 @@
+{{ if not (eq .chezmoi.os "windows") }}
+AppData/
+{{ end }}
+{{ if not (eq .chezmoi.os "linux") }}
+.bashrc
+.zshrc
+.profile
+{{ end }}

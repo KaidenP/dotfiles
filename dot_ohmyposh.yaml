@@ -12,8 +12,9 @@ var:
     # - "Kaiden"
 maps:
   shell_name:
-    zsh: ''
-    bash: ''
+    zsh: ""
+    bash: ""
+    pwsh: "PS"
 blocks:
     - type: prompt
       alignment: left
@@ -111,7 +112,7 @@ blocks:
           foreground: '#d3d7cf'
           type: text
           style: plain
-        - template: " \u276f"
+        - template: "\u276f"
           foreground: '#5fd700'
           foreground_templates:
             - "{{ if .Error }}#ff3131{{ end }}"
@@ -126,13 +127,5 @@ blocks:
           foreground: '#d3d7cf'
           type: text
           style: plain
-        # - type: command
-        #   style: plain
-        #   foreground: green
-        #   command: |
-        #     if [ -z "$PUBLIC_IP" ]; then
-        #       export PUBLIC_IP=$(curl -s ifconfig.me)
-        #     fi
-        #     echo $PUBLIC_IP
 version: 4
 final_space: true

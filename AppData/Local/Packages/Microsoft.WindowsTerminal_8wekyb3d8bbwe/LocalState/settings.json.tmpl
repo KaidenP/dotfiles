@@ -28,7 +28,7 @@
     ],
     "copyFormatting": "none",
     "copyOnSelect": false,
-    "defaultProfile": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+    "defaultProfile": "{e72abb56-ab17-50cf-9780-9bbd9b2b850c}",
     "keybindings": [
         {
             "id": "User.copy.644BA8F2",
@@ -63,14 +63,18 @@
         "list": [
             {
                 "commandline": "pwsh.exe",
+                "guid": "{e72abb56-ab17-50cf-9780-9bbd9b2b850c}",
                 "hidden": false,
-                "name": "PowerShell"
+                "name": "PowerShell",
+                "startingDirectory": "%USERPROFILE%"
+                "icon": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
             },
             {
                 "hidden": false,
                 "name": "WSL",
                 "icon": "ms-appx:///ProfileIcons/{9acb9455-ca41-5af7-950f-6bca1bc9722f}.png",
-                "commandline": "wsl.exe"
+                "commandline": "wsl.exe",
+                "startingDirectory": "%USERPROFILE%"
             }
             {{- $hosts := (include "dot_local/share/encrypted_ssh_hosts.yaml.age" | decrypt | fromYaml) }}
             {{- range $hostid, $data := $hosts }},
