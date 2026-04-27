@@ -14,6 +14,11 @@ if [[ $(id -u) -eq 0 ]]; then
   exit 0
 fi
 
+# Exit early if ssh-agent-pipe is already enabled and started
+if systemctl --user is-enabled ssh-agent-pipe &>/dev/null && systemctl --user is-active ssh-agent-pipe &>/dev/null; then
+  exit 0
+fi
+
 # Create wrapper script for npiperelay.exe
 mkdir -p "$HOME/.local/share/wsl-ssh-agent"
 cat > "$HOME/.local/share/wsl-ssh-agent/npiperelay-win.sh" <<EOF
