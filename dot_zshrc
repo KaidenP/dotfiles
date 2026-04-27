@@ -64,7 +64,7 @@ zstyle ':omz:update' frequency 13
 # HIST_STAMPS="mm/dd/yyyy"
 
 # Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
+ZSH_CUSTOM=~/.oh-my-zsh-custom
 
 # Which plugins would you like to load?
 # Standard plugins can be found in $ZSH/plugins/
@@ -122,21 +122,5 @@ if command -v systemctl >/dev/null 2>&1 && systemctl --user is-active --quiet ss
 	export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/ssh-agent.sock"
 fi
 
-# set PATH so it includes user's private bin if it exists
-if [ -d "$HOME/.local/bin" ]; then
-	PATH="$HOME/.local/bin:$PATH"
-fi
-
-# snap puts bins in /snap/bin
-if [ -d "/snap/bin" ]; then
-	PATH="$PATH:/snap/bin"
-fi
-
-# Python venv
-if [ -f "$HOME/.venv/bin/activate" ]; then
-	source "$HOME/.venv/bin/activate"
-fi
-
 eval "$(oh-my-posh init zsh -c ~/.ohmyposh.yaml)"
 
-{{ completion "zsh" }}
