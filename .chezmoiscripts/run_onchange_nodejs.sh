@@ -8,6 +8,7 @@ NPM_PACKAGES=(
   npm@latest
   yarn
   pnpm
+  bun
 )
 
 # Install or update nvm
