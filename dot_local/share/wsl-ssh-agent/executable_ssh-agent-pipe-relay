@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euo pipefail
+
+NPIPERELAY="$HOME/.local/share/wsl-ssh-agent/npiperelay-win.sh"
+SOCK="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/ssh-agent.sock"
+LOCK="${SOCK}.lock"
+
+# Acquire an exclusive lock that is held for the lifetime of socat (via exec).
+# Any subsequent invocation — whether from a second terminal or a manual call
+# while the systemd service is running — will fail to acquire the lock and exit
+# without touching the active relay.
+exec 9>"$LOCK"
+if ! flock -n 9; then
+    echo "ssh-agent relay is already running on $SOCK" >&2
+    exit 0
+fi
+
+rm -f "$SOCK"
+exec socat "UNIX-LISTEN:$SOCK,fork" "EXEC:$NPIPERELAY -ei -s //./pipe/openssh-ssh-agent,nofork"

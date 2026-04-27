@@ -1,0 +1,13 @@
+[Unit]
+Description=SSH Agent Socket Relay (Windows OpenSSH Agent via npiperelay)
+Documentation=https://github.com/jstarks/npiperelay
+ConditionPathExists=/proc/sys/fs/binfmt_misc/WSLInterop
+
+[Service]
+Type=simple
+ExecStart=%h/.local/share/wsl-ssh-agent/ssh-agent-pipe-relay
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

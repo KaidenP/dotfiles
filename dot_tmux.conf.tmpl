@@ -1,0 +1,102 @@
+# Enable mouse control (clickable windows, panes, resizable panes)
+set -g mouse on
+set -g set-clipboard on
+
+# Mouse:
+# drag to select (selection stays highlighted after release, does not copy yet)
+bind -T copy-mode    MouseDragEnd1Pane send-keys -X stop-selection
+bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X stop-selection
+# click (release without drag) clears the selection
+bind -T copy-mode    MouseUp1Pane send-keys -X cancel
+bind -T copy-mode-vi MouseUp1Pane send-keys -X cancel
+# right-click: copy if a selection is active, otherwise paste
+bind -n              MouseDown3Pane paste-buffer -p
+bind -T copy-mode    MouseDown3Pane if -F "#{selection_present}" "send-keys -X copy-selection-and-cancel" "send-keys -X cancel ; paste-buffer -p"
+bind -T copy-mode-vi MouseDown3Pane if -F "#{selection_present}" "send-keys -X copy-selection-and-cancel" "send-keys -X cancel ; paste-buffer -p"
+
+# right-click on window tabs: display menu with options
+bind -n MouseDown3Status display-menu -xM -yM -T "Window: #W" \
+  "Rename Window" "r" "command-prompt -I '#W' 'rename-window %%'" \
+  "Kill Window" "k" "confirm-before -p 'Kill window #W? (y/n)' 'kill-window'" \
+  "" \
+  "New Window" "n" "new-window" \
+  "Next Window" "N" "select-window -n" \
+  "Previous Window" "P" "select-window -p" \
+  "" \
+  "Move Window Left" "L" "swap-window -t -1" \
+  "Move Window Right" "R" "swap-window -t +1"
+
+# reload config file
+bind r source-file ~/.tmux.conf
+
+# remap prefix from 'C-b' to 'C-a'
+#unbind C-b
+#set-option -g prefix C-a
+#bind-key C-a send-prefix
+
+# split panes using | and -
+bind | split-window -h
+bind - split-window -v
+unbind '"'
+unbind %
+
+# switch panes using Alt-arrow without prefix
+bind -n M-Left select-pane -L
+bind -n M-Right select-pane -R
+bind -n M-Up select-pane -U
+bind -n M-Down select-pane -D
+
+set -g renumber-windows on
+set -g pane-border-lines heavy
+
+# ====================================
+# Statusline
+# ====================================
+
+# Colors
+set -g @color_fg '#4a7ba3'
+set -g @color_bg '#1e1e1e'
+set -g @color_highlight_fg '#1e1e1e'
+set -g @color_highlight_bg '#569cd6'
+set -g @color_section_fg '#252525'
+set -g @color_section_bg '#808080'
+
+set -g @bl "\ue0d6"
+set -g @br "\ue0d7"
+set -g @wbl "\ue0d6"
+set -g @wbr "\ue0d7"
+
+set -g status-style 'bg=#{@color_bg} fg=#{@color_fg}'
+set -g window-status-style 'bg=#{@color_section_bg} fg=#{@color_section_fg}'
+set -g window-status-current-style 'fg=#{@color_highlight_fg} bg=#{@color_highlight_bg}'
+
+# Status bar layout
+set -g status-left-length 30
+set -g status-right-length 80
+
+# Left: Session name
+set -g status-left "#[fg=#{@color_highlight_fg} bg=#{@color_highlight_bg}]#{?#{==:#{session_name},#{host}}, #[bold]󰍹 #{@br}, #S #{@br}}#[default] "
+
+# Right: System stats + Time with powerline
+set -g status-right "#(~/.local/bin/system-stats -d 1 '\ue0c7#[reverse] 󰅐 &lavg1& \ue0c7#[default] \uefc5 &mused&/&mtotal& \ue0c7#[reverse] \ueb29 &pkg_updates& \ue0c7#[default] 󰒍 &nio_in&|&nio_out& \ue0c7#[reverse] \uf472 &dio_read&|&dio_write& \ue0c7#[default] 󰋊 &dpc&%') \ue0c7#[reverse] %H:%M "
+set -g status-right-length 160
+
+# Window status with powerline
+set -g window-status-format "#[bg=#{@color_section_bg} fg=#{@color_bg}]#{@wbl}#[default] #{window_index}:#{window_name} #[bg=#{@color_section_bg} fg=#{@color_bg}]#{@wbr}#[default]"
+set -g window-status-current-format "#{@wbl} #{window_index}:#{window_name} #{@wbr}"
+
+# Separator between windows
+set -g window-status-separator ' '
+
+# Wrapping it all together
+#set -g status-format "#[align=left range=left #{E:status-left-style}]#[push-default]#{T;=/#{status-left-length}:status-left}#[pop-default]#[norange default]#[list=on align=#{status-justify}]#[list=left-marker]<#[list=right-marker]>#[list=on]#{W:#[range=window|#{window_index} #{E:window-status-style}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]#{?window_end_flag,,#{window-status-separator}},#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]#{?window_end_flag,,#{window-status-separator}}}#[nolist align=right range=right #{E:status-right-style}]#[push-default]#{T;=/#{status-right-length}:status-right}#[pop-default]#[norange default]"
+
+# ====================================
+# TPM
+# ====================================
+
+# Tabby
+set -g @plugin 'brendandebeasi/tabby'
+
+# TPM Init
+run '~/.tmux/plugins/tpm/tpm'

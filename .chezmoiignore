@@ -6,4 +6,19 @@ Documents/
 .bashrc
 .zshrc
 .profile
+
+.tmux.conf
+.local/share/tmux-power
+
+dot_config/systemd
+{{ end }}
+# .oh-my-zsh/cache
+
+{{ if or 
+  (not (lookPath "npiperelay.exe"))
+  (eq .chezmoi.os "windows")
+  (not (stat "/proc/sys/fs/binfmt_misc/WSLInterop"))
+}}
+.local/share/wsl-ssh-agent
+.config/systemd/user/ssh-agent-pipe.service
 {{ end }}

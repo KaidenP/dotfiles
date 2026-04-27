@@ -1,0 +1,526 @@
+#!/usr/bin/env bash
+#
+# system-stats - output system statistics using a format string
+#
+# Substitutes &placeholder& tokens in a format string with live values.
+# Rate-based stats (CPU, disk I/O, network I/O) share a single sampling
+# window controlled by --duration, so multiple rates wait concurrently.
+
+set -euo pipefail
+
+SELF="$0"
+DURATION=1
+FORMAT=""
+
+# =====================================================================
+# help / usage
+# =====================================================================
+
+show_help() {
+    cat <<'EOF'
+Usage: system-stats [OPTIONS] FORMAT
+
+Substitute &placeholder& tokens in FORMAT with live system stats.
+
+Options:
+  -h, --help              Show this help.
+  -u, --usage             Show comprehensive usage with live examples.
+  -d, --duration SECONDS  Sampling window for rate stats (default: 1).
+                          Shared across all rate stats in one call.
+
+Placeholders:
+  Load average:    &lavg1&   &lavg5&   &lavg15&
+  Memory:          &mtotal&  &mused&   &mavail&  &mfree&  &mpc&
+  Swap:            &stotal&  &sused&   &sfree&   &spc&
+  Disk (default /):&dtotal&  &dused&   &davail&  &dpc&
+  Disk (path):     &dtotal:PATH&   &dused:PATH&   ...
+  Disk I/O:        &dio_read&   &dio_write&        (bytes/sec aggregate)
+  Network I/O:     &nio_in&     &nio_out&          (bytes/sec aggregate)
+  CPU:             &cpu&                           (percent busy)
+  Uptime:          &uptime&     &uptime_s&
+  Packages:        &pkg_updates&                   (packages needing update)
+  Identity:        &host&       &user&
+
+Unknown placeholders cause an error. Sizes/rates are human-readable
+(e.g. 1.2G, 512K/s). Percents are bare numbers (add literal % in format).
+
+See 'system-stats -u' for live examples.
+EOF
+}
+
+show_usage() {
+    cat <<'EOF'
+system-stats - output system statistics using a format string
+
+OVERVIEW
+    system-stats takes a single FORMAT argument and substitutes each
+    %placeholder% token with a live value from the system. It's designed
+    to feed other scripts (tmux status bars, polybar, prompts, logging,
+    health checks, etc).
+
+FORMAT
+    Placeholders look like &name& or &name:arg& and must match the
+    strict pattern &[a-z_][a-z0-9_]*(:arg)?&. Anything else is treated
+    as literal text, so you can freely mix plain text, punctuation, and
+    even stray % characters (as in "50%" or "&mpc&&").
+
+    If a token matches the placeholder pattern but the name is not
+    recognized, system-stats exits with an error.
+
+SAMPLING
+    Rate stats (&cpu&, &dio_*&, &nio_*&) require two snapshots separated
+    by a sleep. The -d/--duration option controls that window (default
+    1 second). If multiple rate stats appear in one call they all share
+    the same window -- the script sleeps once, not once per stat.
+
+EXAMPLES (executed live)
+
+EOF
+    _example '&lavg1&'
+    _example 'load1=&lavg1& load5=&lavg5& load15=&lavg15&'
+    _example 'mem &mused&/&mtotal& (&mpc&&)'
+    _example 'swap &sused&/&stotal& (&spc&&)'
+    _example 'disk / : &dused&/&dtotal& (&dpc&&)'
+    _example 'disk /tmp: &dused:/tmp&/&dtotal:/tmp& (&dpc:/tmp&&)'
+    _example 'up &uptime& on &host& as &user&'
+    _example -d 1 'cpu &cpu&&'
+    _example -d 1 'net in=&nio_in& out=&nio_out&'
+    _example -d 1 'disk io read=&dio_read& write=&dio_write&'
+    _example -d 1 'cpu &cpu&& | net &nio_in&/&nio_out& | disk &dio_read&/&dio_write&'
+    cat <<'EOF'
+ERRORS
+
+EOF
+    _example_fail '%nonsense%'
+    _example_fail --duration 0 '%cpu%'
+}
+
+# Quote a single argument for shell display: bare if safe, else single-quoted.
+_shquote() {
+    local s="$1"
+    if [[ -n "$s" && "$s" =~ ^[A-Za-z0-9_/.=:@+-]+$ ]]; then
+        printf '%s' "$s"
+    else
+        printf "'%s'" "${s//\'/\'\\\'\'}"
+    fi
+}
+
+# Pretty-print a successful example: "$ system-stats ARGS" then the output.
+_example() {
+    local -a args=("$@")
+    printf '    $ system-stats'
+    local a
+    for a in "${args[@]}"; do
+        printf ' '
+        _shquote "$a"
+    done
+    printf '\n'
+    local out
+    if out=$("$SELF" "${args[@]}" 2>&1); then
+        printf '    %s\n\n' "$out"
+    else
+        printf '    (exit %d) %s\n\n' "$?" "$out"
+    fi
+}
+
+# Pretty-print an example expected to fail (for the error section).
+_example_fail() {
+    local -a args=("$@")
+    printf '    $ system-stats'
+    local a
+    for a in "${args[@]}"; do
+        printf ' '
+        _shquote "$a"
+    done
+    printf '\n'
+    local out rc=0
+    out=$("$SELF" "${args[@]}" 2>&1) || rc=$?
+    printf '    (exit %d) %s\n\n' "$rc" "$out"
+}
+
+# =====================================================================
+# argument parsing
+# =====================================================================
+
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -h|--help)     show_help; exit 0 ;;
+            -u|--usage)    show_usage; exit 0 ;;
+            -d|--duration)
+                [[ $# -ge 2 ]] || die "--duration requires a value"
+                DURATION="$2"; shift 2 ;;
+            --duration=*)  DURATION="${1#*=}"; shift ;;
+            --)            shift
+                           [[ $# -eq 1 ]] || die "expected exactly one FORMAT after --"
+                           FORMAT="$1"; shift ;;
+            -*)            die "unknown option: $1" ;;
+            *)
+                [[ -z "$FORMAT" ]] || die "only one FORMAT argument allowed"
+                FORMAT="$1"; shift ;;
+        esac
+    done
+    [[ -n "$FORMAT" ]] || die "FORMAT argument required (see -h)"
+    [[ "$DURATION" =~ ^[0-9]+(\.[0-9]+)?$ ]] \
+        || die "invalid duration: $DURATION"
+    awk -v d="$DURATION" 'BEGIN { exit !(d > 0) }' \
+        || die "duration must be > 0: $DURATION"
+}
+
+die() { printf 'system-stats: %s\n' "$*" >&2; exit 2; }
+
+# =====================================================================
+# helpers
+# =====================================================================
+
+# Format a byte count as a short human-readable string (e.g. 1.2G).
+human_size() {
+    awk -v b="$1" 'BEGIN {
+        n = split("B K M G T P E", u)
+        i = 1
+        while (b >= 1024 && i < n) { b /= 1024; i++ }
+        if (i == 1) printf "%d%s\n", b, u[i]
+        else        printf "%.1f%s\n", b, u[i]
+    }'
+}
+
+# Read a numeric key from /proc/meminfo (kB).
+meminfo_kb() {
+    awk -v k="$1:" '$1 == k { print $2; exit }' /proc/meminfo
+}
+
+# Emit "size used avail pcnt" in bytes and bare percent for a path.
+df_line() {
+    df -PB1 "$1" 2>/dev/null | awk 'NR==2 { sub(/%/, "", $5); print $2, $3, $4, $5 }'
+}
+
+# CPU jiffies: "total idle" (idle includes iowait).
+cpu_jiffies() {
+    awk '/^cpu / {
+        total = 0
+        for (i = 2; i <= NF; i++) total += $i
+        print total, $5 + $6
+        exit
+    }' /proc/stat
+}
+
+# Aggregate rx/tx bytes across non-loopback interfaces.
+net_bytes() {
+    awk 'NR>2 {
+        iface = $1; sub(/:$/, "", iface)
+        if (iface == "lo") next
+        rx += $2; tx += $10
+    } END { print rx+0, tx+0 }' /proc/net/dev
+}
+
+# Aggregate read/written sectors across physical block devices.
+disk_sectors() {
+    local reads=0 writes=0
+    local f1 f2 f3 f4 f5 f6 f7 _rest dev stat
+    shopt -s nullglob
+    for stat in /sys/block/*/stat; do
+        dev="${stat%/stat}"; dev="${dev##*/}"
+        case "$dev" in
+            ram*|loop*|sr*|dm-*|zram*|md*) continue ;;
+        esac
+        read -r f1 f2 f3 f4 f5 f6 f7 _rest < "$stat" || continue
+        reads=$(( reads + f3 ))
+        writes=$(( writes + f7 ))
+    done
+    shopt -u nullglob
+    echo "$reads $writes"
+}
+
+# Count packages available for update. Updates lists and caches result for one day.
+pkg_updates() {
+    local cache_dir="${XDG_CACHE_HOME:=$HOME/.cache}"
+    local cache_file="$cache_dir/system-stats-pkg-updates"
+    local list_cache_file="$cache_dir/system-stats-pkg-list-update"
+    local now count
+    now=$(date +%s)
+
+    mkdir -p "$cache_dir"
+
+    # Check if package lists need updating (once per day)
+    local need_update=1
+    if [[ -f "$list_cache_file" ]]; then
+        local mtime
+        mtime=$(stat -c %Y "$list_cache_file" 2>/dev/null || stat -f %m "$list_cache_file" 2>/dev/null || echo 0)
+        if (( now - mtime < 86400 )); then
+            need_update=0
+        fi
+    fi
+
+    if (( need_update )); then
+        if command -v apt-get &>/dev/null; then
+            sudo -n apt-get update &>/dev/null || apt-get update &>/dev/null || true
+        elif command -v dnf &>/dev/null; then
+            sudo -n dnf makecache &>/dev/null || dnf makecache &>/dev/null || true
+        elif command -v yum &>/dev/null; then
+            sudo -n yum makecache &>/dev/null || yum makecache &>/dev/null || true
+        elif command -v pacman &>/dev/null; then
+            sudo -n pacman -Sy &>/dev/null || pacman -Sy &>/dev/null || true
+        elif command -v zypper &>/dev/null; then
+            sudo -n zypper refresh &>/dev/null || zypper refresh &>/dev/null || true
+        fi
+        touch "$list_cache_file"
+    fi
+
+    # Check if count is cached
+    if [[ -f "$cache_file" ]]; then
+        local mtime
+        mtime=$(stat -c %Y "$cache_file" 2>/dev/null || stat -f %m "$cache_file" 2>/dev/null || echo 0)
+        if (( now - mtime < 86400 )); then
+            cat "$cache_file"
+            return 0
+        fi
+    fi
+
+    # Get package count
+    if command -v apt-get &>/dev/null; then
+        count=$(apt list --upgradable 2>/dev/null | tail -n +2 | wc -l)
+    elif command -v dnf &>/dev/null; then
+        count=$(dnf upgrade --assumeno 2>/dev/null | grep -c "^[^ ]" || echo 0)
+    elif command -v yum &>/dev/null; then
+        count=$(yum check-update 2>/dev/null | grep -c "^[^ ]" || echo 0)
+    elif command -v pacman &>/dev/null; then
+        count=$(pacman -Qu 2>/dev/null | wc -l)
+    elif command -v zypper &>/dev/null; then
+        count=$(zypper lu 2>/dev/null | grep -c "^[^ ]" || echo 0)
+    else
+        echo "0"
+        return 0
+    fi
+
+    echo "$count" > "$cache_file" 2>/dev/null || true
+    echo "$count"
+}
+
+# =====================================================================
+# rate sampling (shared window)
+# =====================================================================
+
+NEED_CPU=0 NEED_NET=0 NEED_DIO=0
+CPU_TOTAL_B=0 CPU_IDLE_B=0 CPU_TOTAL_A=0 CPU_IDLE_A=0
+NET_RX_B=0   NET_TX_B=0   NET_RX_A=0   NET_TX_A=0
+DISK_R_B=0   DISK_W_B=0   DISK_R_A=0   DISK_W_A=0
+
+snapshot() {
+    local suffix="$1"  # B or A
+    if (( NEED_CPU )); then
+        read -r "CPU_TOTAL_$suffix" "CPU_IDLE_$suffix" < <(cpu_jiffies)
+    fi
+    if (( NEED_NET )); then
+        read -r "NET_RX_$suffix" "NET_TX_$suffix" < <(net_bytes)
+    fi
+    if (( NEED_DIO )); then
+        read -r "DISK_R_$suffix" "DISK_W_$suffix" < <(disk_sectors)
+    fi
+}
+
+# =====================================================================
+# stat computation
+# =====================================================================
+
+# Split "&key:arg&" into globals PH_KEY and PH_ARG.
+parse_placeholder() {
+    local p="$1"
+    local inner="${p#&}"; inner="${inner%&}"
+    if [[ "$inner" == *:* ]]; then
+        PH_KEY="${inner%%:*}"
+        PH_ARG="${inner#*:}"
+    else
+        PH_KEY="$inner"
+        PH_ARG=""
+    fi
+}
+
+# Return 0 if placeholder is known.
+validate_placeholder() {
+    parse_placeholder "$1"
+    case "$PH_KEY" in
+        lavg1|lavg5|lavg15) ;;
+        mtotal|mused|mavail|mfree|mpc) ;;
+        stotal|sused|sfree|spc) ;;
+        dtotal|dused|davail|dpc) ;;
+        dio_read|dio_write) ;;
+        nio_in|nio_out) ;;
+        cpu|uptime|uptime_s|host|user) ;;
+        pkg_updates) ;;
+        *) return 1 ;;
+    esac
+}
+
+# Return 0 if placeholder needs rate sampling.
+placeholder_needs_sample() {
+    parse_placeholder "$1"
+    case "$PH_KEY" in
+        cpu|dio_read|dio_write|nio_in|nio_out) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# Compute the value for a single placeholder token.
+compute() {
+    parse_placeholder "$1"
+    local key="$PH_KEY" arg="$PH_ARG"
+    case "$key" in
+        lavg1)   awk '{print $1}' /proc/loadavg ;;
+        lavg5)   awk '{print $2}' /proc/loadavg ;;
+        lavg15)  awk '{print $3}' /proc/loadavg ;;
+
+        mtotal)  human_size $(( $(meminfo_kb MemTotal)     * 1024 )) ;;
+        mfree)   human_size $(( $(meminfo_kb MemFree)      * 1024 )) ;;
+        mavail)  human_size $(( $(meminfo_kb MemAvailable) * 1024 )) ;;
+        mused)
+            local t a
+            t=$(meminfo_kb MemTotal); a=$(meminfo_kb MemAvailable)
+            human_size $(( (t - a) * 1024 )) ;;
+        mpc)
+            local t a
+            t=$(meminfo_kb MemTotal); a=$(meminfo_kb MemAvailable)
+            awk -v t="$t" -v a="$a" 'BEGIN { printf "%.0f\n", (t-a)*100/t }' ;;
+
+        stotal)  human_size $(( $(meminfo_kb SwapTotal) * 1024 )) ;;
+        sfree)   human_size $(( $(meminfo_kb SwapFree)  * 1024 )) ;;
+        sused)
+            local t f
+            t=$(meminfo_kb SwapTotal); f=$(meminfo_kb SwapFree)
+            human_size $(( (t - f) * 1024 )) ;;
+        spc)
+            local t f
+            t=$(meminfo_kb SwapTotal); f=$(meminfo_kb SwapFree)
+            if (( t == 0 )); then echo 0
+            else awk -v t="$t" -v f="$f" 'BEGIN { printf "%.0f\n", (t-f)*100/t }'
+            fi ;;
+
+        dtotal|dused|davail|dpc)
+            local path="${arg:-/}"
+            local size used avail pc
+            read -r size used avail pc < <(df_line "$path") \
+                || die "cannot stat path: $path"
+            [[ -n "${size:-}" ]] || die "cannot stat path: $path"
+            case "$key" in
+                dtotal) human_size "$size" ;;
+                dused)  human_size "$used" ;;
+                davail) human_size "$avail" ;;
+                dpc)    echo "$pc" ;;
+            esac ;;
+
+        dio_read)
+            local bytes
+            bytes=$(awk -v s="$(( DISK_R_A - DISK_R_B ))" -v d="$DURATION" \
+                    'BEGIN { printf "%d", s * 512 / d }')
+            echo "$(human_size "$bytes")/s" ;;
+        dio_write)
+            local bytes
+            bytes=$(awk -v s="$(( DISK_W_A - DISK_W_B ))" -v d="$DURATION" \
+                    'BEGIN { printf "%d", s * 512 / d }')
+            echo "$(human_size "$bytes")/s" ;;
+
+        nio_in)
+            local bytes
+            bytes=$(awk -v b="$(( NET_RX_A - NET_RX_B ))" -v d="$DURATION" \
+                    'BEGIN { printf "%d", b / d }')
+            echo "$(human_size "$bytes")/s" ;;
+        nio_out)
+            local bytes
+            bytes=$(awk -v b="$(( NET_TX_A - NET_TX_B ))" -v d="$DURATION" \
+                    'BEGIN { printf "%d", b / d }')
+            echo "$(human_size "$bytes")/s" ;;
+
+        cpu)
+            local td id
+            td=$(( CPU_TOTAL_A - CPU_TOTAL_B ))
+            id=$(( CPU_IDLE_A  - CPU_IDLE_B ))
+            if (( td <= 0 )); then echo 0
+            else awk -v t="$td" -v i="$id" 'BEGIN { printf "%.0f\n", (t-i)*100/t }'
+            fi ;;
+
+        uptime_s)
+            awk '{ printf "%d\n", $1 }' /proc/uptime ;;
+        uptime)
+            local s d h m
+            s=$(awk '{ printf "%d\n", $1 }' /proc/uptime)
+            d=$(( s / 86400 )); s=$(( s % 86400 ))
+            h=$(( s / 3600 ));  s=$(( s % 3600 ))
+            m=$(( s / 60 ))
+            if   (( d > 0 )); then printf '%dd %dh %dm\n' "$d" "$h" "$m"
+            elif (( h > 0 )); then printf '%dh %dm\n' "$h" "$m"
+            else                   printf '%dm\n' "$m"
+            fi ;;
+
+        host) echo "${HOSTNAME:-$(hostname)}" ;;
+        user) echo "${USER:-$(id -un)}" ;;
+
+        pkg_updates) pkg_updates ;;
+
+        *) die "unknown placeholder: &$key&" ;;
+    esac
+}
+
+# =====================================================================
+# main
+# =====================================================================
+
+main() {
+    parse_args "$@"
+
+    # Extract all placeholder tokens (may include duplicates; dedupe for
+    # validation and for deciding which samples we need).
+    local -a tokens=()
+    local rest="$FORMAT"
+    local re='&[a-z_][a-z0-9_]*(:[^&]*)?&'
+    while [[ $rest =~ $re ]]; do
+        tokens+=("${BASH_REMATCH[0]}")
+        rest="${rest#*"${BASH_REMATCH[0]}"}"
+    done
+
+    # Unique tokens.
+    local -A seen=()
+    local -a uniq=()
+    local t
+    for t in "${tokens[@]}"; do
+        if [[ -z "${seen[$t]:-}" ]]; then
+            seen[$t]=1
+            uniq+=("$t")
+        fi
+    done
+
+    # Validate + decide sampling needs.
+    for t in "${uniq[@]}"; do
+        validate_placeholder "$t" || die "unknown placeholder: $t"
+        if placeholder_needs_sample "$t"; then
+            parse_placeholder "$t"
+            case "$PH_KEY" in
+                cpu)             NEED_CPU=1 ;;
+                nio_in|nio_out)  NEED_NET=1 ;;
+                dio_read|dio_write) NEED_DIO=1 ;;
+            esac
+        fi
+    done
+
+    # If any rate stats, take concurrent samples across one window.
+    if (( NEED_CPU || NEED_NET || NEED_DIO )); then
+        snapshot B
+        sleep "$DURATION"
+        snapshot A
+    fi
+
+    # Substitute. Walk FORMAT left-to-right, replacing each match.
+    local output="$FORMAT" result=""
+    while [[ $output =~ $re ]]; do
+        local token="${BASH_REMATCH[0]}"
+        local before="${output%%"$token"*}"
+        local after="${output#*"$token"}"
+        local value
+        value=$(compute "$token")
+        result+="${before}${value}"
+        output="$after"
+    done
+    result+="$output"
+
+    printf '%s\n' "$result"
+}
+
+main "$@"
