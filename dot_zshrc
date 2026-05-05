@@ -119,3 +119,6 @@ fi
 
 eval "$(oh-my-posh init zsh -c ~/.ohmyposh.yaml)"
 
+# Atuin
+eval "$(atuin init zsh)"
+eval "$(atuin gen-completions --shell zsh)"

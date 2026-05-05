@@ -1,0 +1,50 @@
+#!/bin/bash
+set -eu
+
+# Install Atuin shell history replacement
+# https://atuin.sh
+
+if ! command -v atuin &> /dev/null; then
+    echo "Installing Atuin..."
+
+    # Detect OS and architecture
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    ARCH=$(uname -m)
+
+    case "$ARCH" in
+        x86_64)
+            ARCH="x86_64"
+            ;;
+        aarch64)
+            ARCH="aarch64"
+            ;;
+        *)
+            echo "Unsupported architecture: $ARCH"
+            exit 1
+            ;;
+    esac
+
+    # Download and install from GitHub releases
+    ATUIN_VERSION=$(curl -s https://api.github.com/repos/atuinsh/atuin/releases/latest | grep tag_name | cut -d'"' -f4)
+    DOWNLOAD_URL="https://github.com/atuinsh/atuin/releases/download/${ATUIN_VERSION}/atuin-${ARCH}-unknown-${OS}-gnu.tar.gz"
+
+    mkdir -p /tmp/atuin-install
+    cd /tmp/atuin-install
+    curl -L "$DOWNLOAD_URL" | tar xz
+
+    # Install to ~/.local/bin
+    mkdir -p ~/.local/bin
+    mv atuin*/atuin ~/.local/bin/atuin
+    chmod +x ~/.local/bin/atuin
+
+    # cleanup
+    cd ~
+    rm -rf /tmp/atuin-install
+
+    echo "Atuin installed successfully to ~/.local/bin/atuin"
+    echo "Version: $ATUIN_VERSION"
+fi
+{{ $loginData := joinPath .chezmoi.sourceDir "dot_local" "share" "private_atuin" "encrypted_remove_loginInfo.yaml.age" | include | decrypt | fromYaml }}
+# echo '{{ joinPath .chezmoi.sourceDir "dot_local" "share" "private_atuin" "encrypted_private_key.age" | include | decrypt }}' | 
+echo | atuin login -u '{{ $loginData.username }}' -p '{{ $loginData.password }}' &> /dev/null #|| true
+echo $?

@@ -1,3 +1,7 @@
+README.md
+scratch/
+ignored_*
+
 {{ if not (eq .chezmoi.os "windows") }}
 AppData/
 Documents/
