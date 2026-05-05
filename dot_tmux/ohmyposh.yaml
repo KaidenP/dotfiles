@@ -136,7 +136,7 @@ blocks:
           type: time
           style: diamond
           options:
-            time_format: RFC822
+            time_format: Mon Jan 02 03:04 PM MST
           invert_powerline: true
         - type: spotify
           style: powerline
