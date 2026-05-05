@@ -1,0 +1,91 @@
+# Enable mouse control (clickable windows, panes, resizable panes)
+set -g mouse on
+set -g set-clipboard on
+
+# Mouse:
+# drag to select (selection stays highlighted after release, does not copy yet)
+bind -T copy-mode    MouseDragEnd1Pane send-keys -X stop-selection
+bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X stop-selection
+# click (release without drag) clears the selection
+bind -T copy-mode    MouseUp1Pane send-keys -X cancel
+bind -T copy-mode-vi MouseUp1Pane send-keys -X cancel
+# right-click: copy if a selection is active, otherwise paste
+bind -n              MouseDown3Pane paste-buffer -p
+bind -T copy-mode    MouseDown3Pane if -F "#{selection_present}" "send-keys -X copy-selection-and-cancel" "send-keys -X cancel ; paste-buffer -p"
+bind -T copy-mode-vi MouseDown3Pane if -F "#{selection_present}" "send-keys -X copy-selection-and-cancel" "send-keys -X cancel ; paste-buffer -p"
+
+# right-click on window tabs: display menu with options
+bind -n MouseDown3Status if-shell -F "#{==:#{mouse_status_range},window}" \
+  "display-menu -xM -yM -T 'Window: #{window_name}' \
+    'Rename Window' 'r' \"command-prompt -I '#{window_name}' 'rename-window %%'\" \
+    'Kill Window' 'k' \"confirm-before -p 'Kill window #{window_name}? (y/n)' 'kill-window'\" \
+    '' \
+    'New Window' 'n' 'new-window' \
+    'Next Window' 'N' 'select-window -n' \
+    'Previous Window' 'P' 'select-window -p' \
+    '' \
+    'Move Window Left' 'L' 'swap-window -t -1' \
+    'Move Window Right' 'R' 'swap-window -t +1'" \
+  "if-shell -F '#{==:#{mouse_status_range},newWin}' \
+    \"display-menu -xM -yM -T '' \
+      'Horizontal Split' 'h' 'split-window -h' \
+      'Vertical Split' 'v' 'split-window -v'\""
+
+# Custom Buttons
+# bind-key -n MouseDown1Status if -F '#{==:#{mouse_status_range},prev}' \
+#   'previous-window' \
+#   'if -F "#{==:#{mouse_status_range},next}" "next-window"'
+bind-key -n MouseDown1Status run-shell '
+  case "#{mouse_status_range}" in
+    window) tmux select-window -t "#{window_index}" ;;
+    newWin) tmux new-window ;;
+  esac
+'
+
+# reload config file
+bind r source-file ~/.tmux.conf
+
+# remap prefix from 'C-b' to 'C-a'
+#unbind C-b
+#set-option -g prefix C-a
+#bind-key C-a send-prefix
+
+# split panes using | and -
+bind | split-window -h
+bind - split-window -v
+unbind '"'
+unbind %
+
+# switch panes using Alt-arrow without prefix
+bind -n M-Left select-pane -L
+bind -n M-Right select-pane -R
+bind -n M-Up select-pane -U
+bind -n M-Down select-pane -D
+
+set -g renumber-windows on
+set -g pane-border-lines heavy
+
+# ====================================
+# Statusline
+# ====================================
+
+set -g status-interval 2
+
+# Colors
+set -g @color_fg '#569cd6'
+set -g @color_bg '#1e1e1e'
+
+set -g status-style 'bg=#{@color_bg} fg=#{@color_fg}'
+
+set -g @windowFormat '#{window_name}'
+
+set -g status-format[0] "#(oh-my-posh print primary --config ~/.tmux/ohmyposh.yaml --pwd '#{pane_current_path}' -w '#{client_width}' | ~/.tmux/ansiToTMUX.py)"
+
+# ====================================
+# TPM
+# ====================================
+
+# set -g @plugin 'KaidenP/statusmux'
+
+# TPM Init
+run '~/.tmux/plugins/tpm/tpm'

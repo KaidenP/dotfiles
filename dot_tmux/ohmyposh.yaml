@@ -1,0 +1,158 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json
+
+upgrade:
+    source: cdn
+    interval: 168h
+    auto: false
+    notice: false
+blocks:
+    - type: prompt
+      alignment: left
+      segments:
+        # Defaults
+        - type: text
+          style: plain
+          template: "#[push-default]"
+          foreground: '#569cd6'
+          background: '#1e1e1e'
+        # BEGIN: Left status area
+        - type: text
+          style: plain
+          template: "#[align=left range=left]"
+        - template: " {{ if .WSL }}\uE62A {{ end }}{{.Icon}} "
+          foreground: '#000000'
+          background: '#d3d7cf'
+          type: os
+          style: diamond
+        - template: "\
+            {{ if .SSHSession }} \
+            󰒋 {{ .HostName }} {{ end }}"
+          foreground: '#000000'
+          powerline_symbol: 
+          background: '#dee81a'
+          type: session
+          style: powerline
+        - options:
+            home_icon: "~"
+            style: full
+          template: ' #{?#{==:#{session_name},0},#[bold]󰍹,#S} '
+          foreground: '#e4e4e4'
+          powerline_symbol: 
+          background: '#3465a4'
+          type: path
+          style: powerline
+        # END: Left status area
+        - type: text
+          style: plain
+          template: " #[norange]"
+        # Window list markers
+        - type: text
+          style: plain
+          template: "#[list=on align=#{status-justify}]#[list=left-marker]<#[list=right-marker]>#[list=on]"
+        # For each window
+        - type: text
+          style: plain
+          template: "#{W:"
+        # BEGIN: Inactive window styling
+        - type: text
+          style: plain
+          template: "#[range=window|#{window_index}]"
+        # Inactive window styling and content
+        - type: text
+          style: powerline
+          powerline_symbol: "\ue0b4"
+          leading_powerline_symbol: "\ue0b6"
+          invert_powerline: false
+          template: "#{E:@windowFormat}"
+          foreground: '#1e1e1e'
+          background: '#808080'
+        # END: Inactive window styling
+        - type: text
+          style: plain
+          template: "#[norange]#{?window_end_flag,, },"
+        # Active/focused window styling
+        - type: text
+          style: plain
+          template: "#[range=window|#{window_index} list=focus]"
+        # Active window styling and content
+        - type: text
+          style: powerline
+          powerline_symbol: "\ue0b4"
+          leading_powerline_symbol: "\ue0b6"
+          invert_powerline: false
+          template: "#{E:@windowFormat}"
+          foreground: '#1e1e1e'
+          background: '#569cd6'
+        # Active/focused window styling
+        - type: text
+          style: plain
+          template: "#[norange list=on]#{?window_end_flag,, }"
+        # END: For each window
+        - type: text
+          style: plain
+          template: "}"
+        # Window list cleanup
+        - type: text
+          style: plain
+          template: "#[nolist norange]"
+        # New window button
+        - type: text
+          style: powerline
+          template: "#[range=user|newWin]\uf067#[norange]"
+          powerline_symbol: "\ue0b4"
+          leading_powerline_symbol: " \ue0b6"
+          foreground: '#1e1e1e'
+          background: '#808080'
+        # Right status area
+        - type: text
+          style: plain
+          template: "#[align=right]"
+        - options:
+            branch_icon: '  '
+            fetch_status: true
+            fetch_upstream_icon: true
+          template: "{{ .UpstreamIcon }}{{ .HEAD }}\
+            {{if .BranchStatus }} {{ .BranchStatus }}{{ end }}\
+            {{ if .Working.Changed }}  {{ .Working.String }}{{ end }}\
+            {{ if and (.Working.Changed) (.Staging.Changed) }} |{{ end }}\
+            {{ if .Staging.Changed }}  {{ .Staging.String }}{{ end }}\
+            {{ if gt .StashCount 0 }}  {{ .StashCount }}{{ end }} "
+          foreground: '#000000'
+          # powerline_symbol: "\ue0b4"
+          # leading_powerline_symbol: " \ue0b6"
+          leading_diamond: "\ue0b6"
+          trailing_diamond: "\ue0b4"
+          background: '#4e9a06'
+          type: git
+          style: diamond
+          background_templates:
+            - '{{ if or (.Working.Changed) (.Staging.Changed) }}#c4a000{{ end }}'
+            - '{{ if and (gt .Ahead 0) (gt .Behind 0) }}#f26d50{{ end }}'
+            - '{{ if gt .Ahead 0 }}#89d1dc{{ end }}'
+            - '{{ if gt .Behind 0 }}#4e9a06{{ end }}'
+        - template: ' {{ .CurrentDate | date .Format }} '
+          foreground: '#555555'
+          background: '#1e1e1e'
+          type: time
+          style: diamond
+          options:
+            time_format: RFC822
+          invert_powerline: true
+        - type: spotify
+          style: powerline
+          format: "{{ .Icon }}{{ if ne .Status \"stopped\" }}{{ abbrev 5 .Artist }} - {{ abbrev 5 .Track }}{{ end }}"
+          # powerline_symbol: "\ue0b4"
+          leading_powerline_symbol: " \ue0b6"
+          foreground: "#000000"
+          background: "#1ed760"
+          options:
+            playing_icon: " "
+            paused_icon: " "
+            stopped_icon: " "
+          placeholder: ""
+          cache:
+            strategy: device
+            duration: 10s
+          min_width: 150
+version: 4
+final_space: false
