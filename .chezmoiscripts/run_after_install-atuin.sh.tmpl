@@ -46,5 +46,4 @@ if ! command -v atuin &> /dev/null; then
 fi
 {{ $loginData := joinPath .chezmoi.sourceDir "dot_local" "share" "private_atuin" "encrypted_remove_loginInfo.yaml.age" | include | decrypt | fromYaml }}
 # echo '{{ joinPath .chezmoi.sourceDir "dot_local" "share" "private_atuin" "encrypted_private_key.age" | include | decrypt }}' | 
-echo | atuin login -u '{{ $loginData.username }}' -p '{{ $loginData.password }}' &> /dev/null #|| true
-echo $?
+echo | ~/.local/bin/atuin login -u '{{ $loginData.username }}' -p '{{ $loginData.password }}' &> /dev/null #|| true
