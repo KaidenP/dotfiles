@@ -12,6 +12,6 @@
 .tmux/plugins/tpm:
   type: git-repo
   url: https://github.com/tmux-plugins/tpm
-# .autoenv:
-#   type: git-repo
-#   url: https://github.com/inishchith/autoenv
+.autoenv:
+  type: git-repo
+  url: https://github.com/inishchith/autoenv
