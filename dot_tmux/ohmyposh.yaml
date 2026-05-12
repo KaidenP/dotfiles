@@ -138,6 +138,14 @@ blocks:
           options:
             time_format: Mon Jan 02 03:04 PM MST
           invert_powerline: true
+        # Modifyier Key
+        - type: text
+          style: powerline
+          template: "#[range=user|modKey]\uf067#[norange]"
+          powerline_symbol: "\ue0b4"
+          leading_powerline_symbol: " \ue0b6"
+          foreground: '#1e1e1e'
+          background: '#808080'
         - type: spotify
           style: powerline
           format: "{{ .Icon }}{{ if ne .Status \"stopped\" }}{{ abbrev 5 .Artist }} - {{ abbrev 5 .Track }}{{ end }}"

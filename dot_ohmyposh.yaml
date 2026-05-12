@@ -25,9 +25,11 @@ blocks:
     - type: prompt
       alignment: left
       segments:
-        - template: " {{ if .WSL }}\uE62A {{ end }}{{.Icon}} "
+        - template: " {{ if .WSL }}\uE62A {{ end }}{{.Icon}} {{ if .Env._ENV }}- \ued76 {{ .Env._ENV }} {{ end }}"
           foreground: '#000000'
-          background: '#d3d7cf'
+          background_templates:
+            - '{{ if .Env._ENV }}#fff133{{ end }}'
+            - '#d3d7cf'
           type: os
           style: diamond
         - template: "\

@@ -71,7 +71,7 @@ ZSH_CUSTOM=~/.oh-my-zsh-custom
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git zsh-syntax-highlighting autoenv gh nvm ssh sudo)
+plugins=(git zsh-syntax-highlighting autoenv gh nvm ssh sudo command-not-found)
 
 # nvm 
 zstyle ':omz:plugins:nvm' lazy yes
@@ -119,6 +119,11 @@ fi
 
 eval "$(oh-my-posh init zsh -c ~/.ohmyposh.yaml)"
 
-# Atuin
-eval "$(atuin init zsh)"
-eval "$(atuin gen-completions --shell zsh)"
+if [ -d "$HOME/.config/profile.d" ]; then
+  for i in "$HOME/.config/profile.d/"*.sh; do
+    if [ -r "$i" ]; then
+      source $i
+    fi
+  done
+  unset i
+fi

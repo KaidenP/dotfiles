@@ -16,3 +16,6 @@ if [[ -n "$ZSH_VERSION" ]] && command -v atuin &> /dev/null && [[ -o interactive
     preexec_functions+=( _atuin_sync_preexec )
     _atuin_sync &!
 fi
+
+eval "$(atuin init "${SHELL##*/}")"
+command -v compdef &> /dev/null && eval "$(atuin gen-completions --shell "${SHELL##*/}")"
