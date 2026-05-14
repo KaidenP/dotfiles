@@ -1,0 +1,341 @@
+#!/usr/bin/env bash
+#
+# notifier - notify-send drop-in that drives the freedesktop notifications
+# daemon directly via gdbus.
+#
+# Reason for existing: libnotify (notify-send) ships GetCapabilities and
+# Notify back-to-back without waiting on the caps reply against some
+# servers (e.g. cinnamon-notification-daemon 1.2), which makes --action
+# silently degrade to "non-interactive" with exit 1. Driving D-Bus
+# ourselves sidesteps that bug.
+
+set -euo pipefail
+
+SELF="${0##*/}"
+
+# =====================================================================
+# defaults
+# =====================================================================
+
+APP_NAME="$SELF"
+SUMMARY=""
+BODY=""
+ICON=""
+URGENCY=""        # 0=low, 1=normal, 2=critical; empty = don't send hint
+EXPIRE_TIME=-1
+REPLACE_ID=0
+WAIT=0
+PRINT_ID=0
+TRANSIENT=0
+CATEGORY=""
+declare -a ACTIONS=()        # parallel arrays of ids/labels
+declare -a ACTION_LABELS=()
+declare -a HINTS=()          # raw TYPE:NAME:VALUE strings
+
+# =====================================================================
+# help
+# =====================================================================
+
+show_help() {
+    cat <<EOF
+Usage: $SELF [OPTIONS] SUMMARY [BODY]
+
+Send a desktop notification via the org.freedesktop.Notifications D-Bus
+service (gdbus, no libnotify).
+
+Options:
+  -h, --help                    Show this help.
+  -a, --app-name=NAME           Set application name (default: $SELF).
+  -i, --icon=ICON               Icon name or absolute path.
+  -u, --urgency=LEVEL           low | normal | critical.
+  -t, --expire-time=MS          Timeout in ms (-1 = server default,
+                                0 = never).
+  -c, --category=CAT            Notification category hint.
+  -e, --transient               Mark notification transient.
+  -r, --replace-id=ID           Replace existing notification by id.
+  -A, --action=[ID=]LABEL       Add an action button. May be repeated.
+                                If ID is omitted, it defaults to the
+                                action's index (0, 1, ...). Implies
+                                --wait. The invoked ID is printed to
+                                stdout.
+  -H, --hint=TYPE:NAME:VALUE    Extra hint. TYPE one of:
+                                  int | double | string | byte | boolean
+  -w, --wait                    Block until the notification is closed
+                                or an action is invoked.
+  -p, --print-id                Print the notification id on stdout
+                                before any action result.
+
+Exit codes:
+  0   sent successfully (and, if waiting, closed or action invoked)
+  1   notification dismissed/expired with no action
+  2   argument or D-Bus error
+EOF
+}
+
+die() { printf '%s: %s\n' "$SELF" "$*" >&2; exit 2; }
+
+# =====================================================================
+# argument parsing
+# =====================================================================
+
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -h|--help)         show_help; exit 0 ;;
+
+            -a|--app-name)     APP_NAME="${2:?}"; shift 2 ;;
+            --app-name=*)      APP_NAME="${1#*=}"; shift ;;
+
+            -i|--icon)         ICON="${2:?}"; shift 2 ;;
+            --icon=*)          ICON="${1#*=}"; shift ;;
+
+            -u|--urgency)      set_urgency "${2:?}"; shift 2 ;;
+            --urgency=*)       set_urgency "${1#*=}"; shift ;;
+
+            -t|--expire-time)  EXPIRE_TIME="${2:?}"; shift 2 ;;
+            --expire-time=*)   EXPIRE_TIME="${1#*=}"; shift ;;
+
+            -c|--category)     CATEGORY="${2:?}"; shift 2 ;;
+            --category=*)      CATEGORY="${1#*=}"; shift ;;
+
+            -e|--transient)    TRANSIENT=1; shift ;;
+
+            -r|--replace-id)   REPLACE_ID="${2:?}"; shift 2 ;;
+            --replace-id=*)    REPLACE_ID="${1#*=}"; shift ;;
+
+            -A|--action)       add_action "${2:?}"; shift 2 ;;
+            --action=*)        add_action "${1#*=}"; shift ;;
+
+            -H|--hint)         HINTS+=("${2:?}"); shift 2 ;;
+            --hint=*)          HINTS+=("${1#*=}"); shift ;;
+
+            -w|--wait)         WAIT=1; shift ;;
+            -p|--print-id)     PRINT_ID=1; shift ;;
+
+            --)                shift
+                               [[ $# -ge 1 ]] || die "expected SUMMARY after --"
+                               SUMMARY="$1"; shift
+                               [[ $# -le 1 ]] || die "too many positional args"
+                               BODY="${1:-}"; shift || true
+                               return ;;
+            -*)                die "unknown option: $1" ;;
+            *)
+                if   [[ -z "$SUMMARY" ]]; then SUMMARY="$1"; shift
+                elif [[ -z "$BODY"    ]]; then BODY="$1";    shift
+                else die "too many positional args (got $1)"; fi ;;
+        esac
+    done
+    [[ -n "$SUMMARY" ]] || die "SUMMARY is required (see --help)"
+    [[ "$EXPIRE_TIME" =~ ^-?[0-9]+$ ]] || die "invalid --expire-time: $EXPIRE_TIME"
+    [[ "$REPLACE_ID"  =~ ^[0-9]+$    ]] || die "invalid --replace-id: $REPLACE_ID"
+}
+
+set_urgency() {
+    case "$1" in
+        low|0)      URGENCY=0 ;;
+        normal|1)   URGENCY=1 ;;
+        critical|2) URGENCY=2 ;;
+        *) die "invalid urgency: $1 (use low|normal|critical)" ;;
+    esac
+}
+
+add_action() {
+    local raw="$1" id label
+    if [[ "$raw" == *=* ]]; then
+        id="${raw%%=*}"
+        label="${raw#*=}"
+    else
+        id="${#ACTIONS[@]}"
+        label="$raw"
+    fi
+    [[ -n "$id"    ]] || die "action id cannot be empty"
+    [[ -n "$label" ]] || die "action label cannot be empty"
+    ACTIONS+=("$id")
+    ACTION_LABELS+=("$label")
+}
+
+# =====================================================================
+# GVariant building
+# =====================================================================
+
+# Escape a string for use inside a single-quoted GVariant string literal.
+# Backslash first, then single quote.
+gv_escape() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\'/\\\'}"
+    printf "%s" "$s"
+}
+
+# Render the actions array (`as` in GVariant terms) as
+# ['id1', 'label1', 'id2', 'label2', ...]. Empty -> '@as []' so gdbus
+# knows the type even when the array is empty.
+build_actions() {
+    if (( ${#ACTIONS[@]} == 0 )); then
+        printf "@as []"
+        return
+    fi
+    local out="[" sep="" i
+    for (( i = 0; i < ${#ACTIONS[@]}; i++ )); do
+        out+="${sep}'$(gv_escape "${ACTIONS[i]}")', '$(gv_escape "${ACTION_LABELS[i]}")'"
+        sep=", "
+    done
+    out+="]"
+    printf "%s" "$out"
+}
+
+# Render the hints dict (`a{sv}`).
+build_hints() {
+    local entries=() name type value rendered
+
+    if [[ -n "$URGENCY" ]]; then
+        entries+=("'urgency': <byte $URGENCY>")
+    fi
+    if (( TRANSIENT )); then
+        entries+=("'transient': <true>")
+    fi
+    if [[ -n "$CATEGORY" ]]; then
+        entries+=("'category': <'$(gv_escape "$CATEGORY")'>")
+    fi
+
+    local h
+    for h in "${HINTS[@]}"; do
+        # split TYPE:NAME:VALUE on the first two colons
+        if [[ "$h" != *:*:* ]]; then
+            die "invalid --hint (need TYPE:NAME:VALUE): $h"
+        fi
+        type="${h%%:*}"
+        local rest="${h#*:}"
+        name="${rest%%:*}"
+        value="${rest#*:}"
+        case "$type" in
+            int)     [[ "$value" =~ ^-?[0-9]+$            ]] || die "hint $name: int value required"
+                     rendered="<int32 $value>" ;;
+            double)  [[ "$value" =~ ^-?[0-9]+(\.[0-9]+)?$ ]] || die "hint $name: double value required"
+                     rendered="<double $value>" ;;
+            byte)    [[ "$value" =~ ^[0-9]+$              ]] || die "hint $name: byte value required"
+                     rendered="<byte $value>" ;;
+            string)  rendered="<'$(gv_escape "$value")'>" ;;
+            boolean) case "$value" in
+                         true|yes|1)  rendered="<true>"  ;;
+                         false|no|0)  rendered="<false>" ;;
+                         *) die "hint $name: boolean must be true/false" ;;
+                     esac ;;
+            *) die "unknown hint type: $type (use int|double|string|byte|boolean)" ;;
+        esac
+        entries+=("'$(gv_escape "$name")': $rendered")
+    done
+
+    if (( ${#entries[@]} == 0 )); then
+        printf "@a{sv} {}"
+        return
+    fi
+    local out="{" sep="" e
+    for e in "${entries[@]}"; do out+="${sep}${e}"; sep=", "; done
+    out+="}"
+    printf "%s" "$out"
+}
+
+# =====================================================================
+# D-Bus interaction
+# =====================================================================
+
+NOTIF_DEST="org.freedesktop.Notifications"
+NOTIF_PATH="/org/freedesktop/Notifications"
+NOTIF_IFACE="org.freedesktop.Notifications"
+
+# Call Notify, echo the returned id.
+send_notify() {
+    local reply
+    # Wrap numerics in typed GVariant literals so a negative value like
+    # -1 is not parsed as a command-line option by gdbus.
+    reply=$(gdbus call --session \
+        --dest "$NOTIF_DEST" \
+        --object-path "$NOTIF_PATH" \
+        --method "$NOTIF_IFACE.Notify" \
+        "$APP_NAME" \
+        "uint32 $REPLACE_ID" \
+        "$ICON" \
+        "$SUMMARY" \
+        "$BODY" \
+        "$(build_actions)" \
+        "$(build_hints)" \
+        "int32 $EXPIRE_TIME") \
+        || die "gdbus Notify failed"
+
+    # reply looks like "(uint32 50,)"
+    [[ "$reply" =~ uint32\ ([0-9]+) ]] \
+        || die "could not parse Notify reply: $reply"
+    printf '%s\n' "${BASH_REMATCH[1]}"
+}
+
+# Wait for ActionInvoked / NotificationClosed for $1=id.
+# Echoes the invoked action id (if any) and returns:
+#   0 on action invoked or closed-with-no-actions
+#   1 on closed with actions present but none invoked
+wait_for_signal() {
+    local id="$1"
+    local line invoked=""
+
+    while IFS= read -r line; do
+        # gdbus monitor lines look like:
+        #   /org/freedesktop/Notifications: org.freedesktop.Notifications.ActionInvoked (uint32 50, 'a')
+        #   /org/freedesktop/Notifications: org.freedesktop.Notifications.NotificationClosed (uint32 50, uint32 2)
+        if [[ "$line" == *"ActionInvoked"* ]] \
+           && [[ "$line" =~ \(uint32\ ([0-9]+),\ \'([^\']*)\' ]]; then
+            if [[ "${BASH_REMATCH[1]}" == "$id" ]]; then
+                invoked="${BASH_REMATCH[2]}"
+                printf '%s\n' "$invoked"
+                return 0
+            fi
+        elif [[ "$line" == *"NotificationClosed"* ]] \
+             && [[ "$line" =~ \(uint32\ ([0-9]+), ]]; then
+            if [[ "${BASH_REMATCH[1]}" == "$id" ]]; then
+                # No ActionInvoked seen: dismissed/expired.
+                if (( ${#ACTIONS[@]} > 0 )); then return 1; fi
+                return 0
+            fi
+        fi
+    done
+    return 1
+}
+
+# =====================================================================
+# main
+# =====================================================================
+
+main() {
+    parse_args "$@"
+
+    command -v gdbus >/dev/null || die "gdbus not found (install glib2 tools)"
+
+    local should_wait=$WAIT
+    (( ${#ACTIONS[@]} > 0 )) && should_wait=1
+
+    if (( should_wait )); then
+        # Start the monitor BEFORE sending Notify to avoid a race where
+        # the action is invoked before we're subscribed. Sleep briefly
+        # to let gdbus register its match rule.
+        coproc MON { exec gdbus monitor --session \
+            --dest "$NOTIF_DEST" \
+            --object-path "$NOTIF_PATH" 2>/dev/null; }
+        # shellcheck disable=SC2154
+        local mon_pid=$MON_PID
+        trap 'kill "$mon_pid" 2>/dev/null || true' EXIT
+        sleep 0.1
+
+        local id
+        id=$(send_notify)
+        (( PRINT_ID )) && printf 'id=%s\n' "$id"
+
+        local rc=0
+        wait_for_signal "$id" <&"${MON[0]}" || rc=$?
+        exit $rc
+    else
+        local id
+        id=$(send_notify)
+        (( PRINT_ID )) && printf '%s\n' "$id"
+    fi
+}
+
+main "$@"

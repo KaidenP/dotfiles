@@ -1,0 +1,47 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ansible-lint)",
+      "Bash(ansible-lint *)",
+      "Bash(cargo build *)"
+    ]
+  },
+  "model": "haiku",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq 'if .tool_input.command | contains(\"find\") then {hookSpecificOutput: {hookEventName: \"PreToolUse\", updatedInput: {command: (.tool_input.command + \" | tree --charset ascii --fromfile .\")}}} else {} end'",
+            "if": "Bash(find *)"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/notifier-permission.sh",
+            "statusMessage": "Waiting for permission via notification"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "notify-send -i ~/.claude/claude-logo.svg 'Claude' 'Prompt completed'",
+            "statusMessage": "Sending notification"
+          }
+        ]
+      }
+    ]
+  },
+  "effortLevel": "xhigh"
+}
