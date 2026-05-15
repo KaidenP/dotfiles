@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 #
-# PermissionRequest hook: pop a desktop notification with Approve/Deny
-# buttons. On click, emit the corresponding hookSpecificOutput JSON. On
-# timeout or dismissal, emit nothing so the in-TUI prompt takes over.
+# PermissionRequest hook: send a desktop notification.
+# The TUI prompt provides the actual approval/denial interface.
 
 set -uo pipefail
 
@@ -24,24 +23,6 @@ esac
 body="$tool"
 [[ -n "$detail" ]] && body="$tool: ${detail:0:200}"
 
-choice=$("$HOME/.local/bin/notifier" \
-    -i "$HOME/.claude/claude-logo.svg" \
-    -u critical \
-    -t 5000 \
-    -A approve=Approve \
-    -A deny=Deny \
-    --wait \
-    'Claude needs permission' "$body" 2>/dev/null) || exit 0
+notify-send -i "$HOME/.claude/claude-logo.svg" -a Claude 'Claude needs permission' "$body" 2>/dev/null || exit 0
 
-case "$choice" in
-    approve) behavior=allow ;;
-    deny)    behavior=deny  ;;
-    *)       exit 0 ;;
-esac
-
-jq -nc --arg b "$behavior" '{
-  hookSpecificOutput: {
-    hookEventName: "PermissionRequest",
-    decision: { behavior: $b }
-  }
-}'
+exit 0

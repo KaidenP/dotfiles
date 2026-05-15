@@ -36,8 +36,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "notify-send -i ~/.claude/claude-logo.svg 'Claude' 'Prompt completed'",
-            "statusMessage": "Sending notification"
+            "command": "~/.claude/hooks/notifier-stop.sh",
+            "statusMessage": "Sending completion notification"
           }
         ]
       }
