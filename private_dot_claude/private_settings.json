@@ -1,0 +1,92 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ansible-lint)",
+      "Bash(ansible-lint *)",
+      "Bash(cargo build *)",
+      "Bash(go build *)",
+      "Bash(/tmp/btr-bkp --version)",
+      "Skill(caveman)",
+      "Skill(caveman:*)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq 'if .tool_input.command | contains(\"find\") then {hookSpecificOutput: {hookEventName: \"PreToolUse\", updatedInput: {command: (.tool_input.command + \" | tree --charset ascii --fromfile .\")}}} else {} end'",
+            "if": "Bash(find *)"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/notifier-permission.sh",
+            "statusMessage": "Waiting for permission via notification"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/notifier-stop.sh",
+            "statusMessage": "Sending completion notification"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/home/kkprince/.nvm/versions/node/v24.15.0/bin/node\" \"/home/kkprince/.claude/hooks/caveman-activate.js\"",
+            "timeout": 5,
+            "statusMessage": "Loading caveman mode..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/home/kkprince/.nvm/versions/node/v24.15.0/bin/node\" \"/home/kkprince/.claude/hooks/caveman-mode-tracker.js\"",
+            "timeout": 5,
+            "statusMessage": "Tracking caveman mode..."
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"/home/kkprince/.claude/hooks/caveman-statusline.sh\""
+  },
+  "enabledPlugins": {
+    "caveman@caveman": true
+  },
+  "extraKnownMarketplaces": {
+    "caveman": {
+      "source": {
+        "source": "github",
+        "repo": "JuliusBrussee/caveman"
+      }
+    }
+  },
+  "effortLevel": "medium"
+}
