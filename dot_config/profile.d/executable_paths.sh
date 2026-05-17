@@ -19,3 +19,8 @@ fi
 if [ -d "$HOME/.cargo/bin" ]; then
 	PATH="$HOME/.cargo/bin:$PATH"
 fi
+
+# opencode
+if [ -d "$HOME/.opencode/bin" ]; then
+	PATH="$HOME/.opencode/bin:$PATH"
+fi
