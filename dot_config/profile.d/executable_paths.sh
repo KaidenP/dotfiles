@@ -23,4 +23,5 @@ fi
 # opencode
 if [ -d "$HOME/.opencode/bin" ]; then
 	PATH="$HOME/.opencode/bin:$PATH"
+	alias oc=opencode
 fi

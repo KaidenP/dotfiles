@@ -1,0 +1,61 @@
+{
+  "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-opencode.schema.json",
+  "agents": {
+    "hephaestus": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    },
+    "oracle": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    },
+    "librarian": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    },
+    "explore": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    },
+    "multimodal-looker": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    },
+    "prometheus": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    },
+    "metis": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    },
+    "momus": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    },
+    "atlas": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    },
+    "sisyphus-junior": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    }
+  },
+  "categories": {
+    "visual-engineering": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    },
+    "ultrabrain": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    },
+    "deep": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    },
+    "artistry": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    },
+    "quick": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    },
+    "unspecified-low": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    },
+    "unspecified-high": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    },
+    "writing": {
+      "model": "openrouter/openai/gpt-oss-120b:free"
+    }
+  }
+}

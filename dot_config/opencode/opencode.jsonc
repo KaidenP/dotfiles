@@ -1,0 +1,13 @@
+{
+  "plugin": [
+    "cc-safety-net",
+    "oh-my-openagent@latest"
+  ],
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "openrouter": {}
+  },
+  "model": "openrouter/openai/gpt-oss-120b:free",
+  "small_model": "openrouter/openrouter/free",
+  "autoupdate": true
+}
