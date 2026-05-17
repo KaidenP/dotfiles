@@ -39,3 +39,39 @@ npm install --global "${NPM_PACKAGES[@]}"
 echo "Node.js setup complete!"
 node --version
 npm --version
+
+# Install opencode-ai via bun
+echo "Installing opencode-ai via bun..."
+if ! command -v bun &> /dev/null; then
+  echo "bun not found, installing..."
+  npm install --global bun
+fi
+bun add --global opencode-ai
+
+# Setup opencode systemd user service
+echo "Setting up opencode systemd user service..."
+mkdir -p "$HOME/.config/systemd/user"
+
+OPENCODE_SERVICE="$HOME/.config/systemd/user/opencode.service"
+cat > "$OPENCODE_SERVICE" << 'EOF'
+[Unit]
+Description=Opencode Web Server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%h/.bun/bin/opencode serve --port 8888 --hostname 0.0.0.0
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF
+
+# Reload systemd user daemon and enable/start the service
+systemctl --user daemon-reload
+systemctl --user enable opencode.service
+systemctl --user start opencode.service
+
+# echo "Opencode service installed and started on port 8888"
+# systemctl --user status opencode.service
