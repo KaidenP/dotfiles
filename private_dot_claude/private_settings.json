@@ -47,46 +47,11 @@
           }
         ]
       }
-    ],
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"/home/kkprince/.nvm/versions/node/v24.15.0/bin/node\" \"/home/kkprince/.claude/hooks/caveman-activate.js\"",
-            "timeout": 5,
-            "statusMessage": "Loading caveman mode..."
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"/home/kkprince/.nvm/versions/node/v24.15.0/bin/node\" \"/home/kkprince/.claude/hooks/caveman-mode-tracker.js\"",
-            "timeout": 5,
-            "statusMessage": "Tracking caveman mode..."
-          }
-        ]
-      }
     ]
   },
-  "statusLine": {
-    "type": "command",
-    "command": "bash \"/home/kkprince/.claude/hooks/caveman-statusline.sh\""
-  },
   "enabledPlugins": {
-    "caveman@caveman": true
+    "caveman@caveman": false
   },
-  "extraKnownMarketplaces": {
-    "caveman": {
-      "source": {
-        "source": "github",
-        "repo": "JuliusBrussee/caveman"
-      }
-    }
-  },
-  "effortLevel": "medium"
+  "effortLevel": "high",
+  "model": "haiku"
 }
