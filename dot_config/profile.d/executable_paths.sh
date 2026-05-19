@@ -21,7 +21,6 @@ if [ -d "$HOME/.cargo/bin" ]; then
 fi
 
 # opencode
-if [ -d "$HOME/.opencode/bin" ]; then
-	PATH="$HOME/.opencode/bin:$PATH"
+if command -v opencode &> /dev/null; then
 	alias oc=opencode
 fi
