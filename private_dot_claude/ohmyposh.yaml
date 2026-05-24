@@ -1,0 +1,79 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json
+
+blocks:
+  - type: prompt
+    alignment: left
+    segments:
+      - type: claude
+        style: diamond
+        leading_diamond: ""
+        trailing_diamond: ""
+        foreground: '#e4e4e4'
+        background: '#3465a4'
+        templates:
+          - "{{- if .Workspace.ProjectDir }}  {{ .Workspace.ProjectDir | replace (env \"HOME\") \"~\" }} {{ end }}"
+      - type: claude
+        style: powerline
+        powerline_symbol: 
+        foreground: "#ffffff"
+        background: "#d97757"
+        templates:
+          - " {{ .Model.DisplayName }}"
+          - "{{- if .Effort.Level }}-{{ .Effort.Level }} {{ end }}"
+          - "{{- if .Thinking }}󰟶 {{ end }}"
+      - type: claude
+        style: powerline
+        powerline_symbol: 
+        foreground: "#ffffff"
+        background: "#2d8a6b"
+        templates:
+          - " ctx {{ .TokenUsagePercent }}% "
+      - type: claude
+        style: powerline
+        powerline_symbol: 
+        foreground: "#ffffff"
+        background: "#7c5cbf"
+        templates:
+          - " 5h {{ .FiveHourUsage }}% \u21ba "
+          - '{{ regexReplaceAll "\\.\\d+s" (printf "%v" .FiveHourResetsIn) "s" }} '
+      - type: claude
+        style: powerline
+        powerline_symbol: 
+        foreground: "#ffffff"
+        background: "#1f6b9e"
+        templates:
+          - " 7d {{ .SevenDayUsage }}% \u21ba "
+          - '{{ regexReplaceAll "\\.\\d+s" (printf "%v" .SevenDayResetsIn) "s" }} '
+  - type: prompt
+    alignment: left
+    segments:
+      - type: git
+        style: diamond
+        leading_diamond: " \ue0b6"
+        trailing_diamond: "\ue0b4"
+        options:
+          branch_icon: '  '
+          fetch_status: true
+          fetch_upstream_icon: true
+        templates:
+          - "{{ .UpstreamIcon }}{{ .HEAD }}"
+          - "{{if .BranchStatus }} {{ .BranchStatus }}{{ end }}"
+          - "{{ if .Working.Changed }}  {{ .Working.String }}{{ end }}"
+          - "{{ if and (.Working.Changed) (.Staging.Changed) }} |{{ end }}"
+          - "{{ if .Staging.Changed }}  {{ .Staging.String }}{{ end }}"
+          - "{{ if gt .StashCount 0 }}  {{ .StashCount }}{{ end }} "
+        foreground: '#000000'
+        background: '#4e9a06'
+        background_templates:
+          - '{{ if or (.Working.Changed) (.Staging.Changed) }}#c4a000{{ end }}'
+          - '{{ if and (gt .Ahead 0) (gt .Behind 0) }}#f26d50{{ end }}'
+          - '{{ if gt .Ahead 0 }}#89d1dc{{ end }}'
+          - '{{ if gt .Behind 0 }}#4e9a06{{ end }}'
+      # - template: ' {{ .CurrentDate | date .Format }}  '
+      #   foreground: '#000000'
+      #   background: '#d3d7cf'
+      #   type: time
+      #   style: diamond
+      #   leading_diamond: " "
+      #   invert_powerline: true
+version: 4
