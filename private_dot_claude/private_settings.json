@@ -1,5 +1,79 @@
 {
+  "effortLevel": "medium",
+  "enabledPlugins": {
+    "caveman@caveman": false
+  },
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "command": "~/.claude/hooks/notifier-permission.sh",
+            "statusMessage": "Waiting for permission via notification",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "atuin hook claude-code",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "command": "atuin hook claude-code",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "jq 'if .tool_input.command | contains(\"find\") then {hookSpecificOutput: {hookEventName: \"PreToolUse\", updatedInput: {command: (.tool_input.command + \" | tree --charset ascii --fromfile .\")}}} else {} end'",
+            "if": "Bash(find *)",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash"
+      },
+      {
+        "hooks": [
+          {
+            "command": "atuin hook claude-code",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "~/.claude/hooks/notifier-stop.sh",
+            "statusMessage": "Sending completion notification",
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
+    "additionalDirectories": [
+      "/tmp"
+    ],
     "allow": [
       "Bash(ansible-lint)",
       "Bash(ansible-lint *)",
@@ -8,50 +82,7 @@
       "Bash(/tmp/btr-bkp --version)",
       "Skill(caveman)",
       "Skill(caveman:*)"
-    ],
-    "additionalDirectories": [
-      "/tmp"
     ]
   },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "jq 'if .tool_input.command | contains(\"find\") then {hookSpecificOutput: {hookEventName: \"PreToolUse\", updatedInput: {command: (.tool_input.command + \" | tree --charset ascii --fromfile .\")}}} else {} end'",
-            "if": "Bash(find *)"
-          }
-        ]
-      }
-    ],
-    "PermissionRequest": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/notifier-permission.sh",
-            "statusMessage": "Waiting for permission via notification"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/notifier-stop.sh",
-            "statusMessage": "Sending completion notification"
-          }
-        ]
-      }
-    ]
-  },
-  "enabledPlugins": {
-    "caveman@caveman": false
-  },
-  "effortLevel": "high",
-  "model": "haiku"
+  "skipDangerousModePermissionPrompt": true
 }
