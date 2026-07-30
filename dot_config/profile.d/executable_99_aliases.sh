@@ -20,3 +20,14 @@ _create_alias() {
 }
 
 _create_alias opencode oc
+
+
+mkcd() {
+	mkdir -p -- "$1" && cd -- "$1"
+}
+
+alias df='df -h'
+alias du='du -h'
+alias cls='clear'
+alias path='printf "%s
+" "$PATH" | tr ":" "\n"'
