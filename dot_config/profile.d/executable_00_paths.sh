@@ -19,8 +19,3 @@ fi
 if [ -d "$HOME/.cargo/bin" ]; then
 	PATH="$HOME/.cargo/bin:$PATH"
 fi
-
-# opencode
-if command -v opencode &> /dev/null; then
-	alias oc=opencode
-fi
